@@ -70,7 +70,6 @@ func _draw() -> void:
 	var size: Vector2 = _screen_size()
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.015, 0.018, 0.040))
 	_draw_background(size)
-	_draw_focus_glow()
 	_draw_trails()
 	_draw_particles()
 	_draw_rings()
@@ -252,11 +251,6 @@ func _draw_background(size: Vector2) -> void:
 			var y: float = y_base + sin(time * 0.55 + step * 0.75 + band * 1.8) * 34.0
 			points.append(Vector2(x, y))
 		draw_polyline(points, _with_alpha(PALETTE[(band + 2) % PALETTE.size()], 0.16), 7.0, true)
-
-
-func _draw_focus_glow() -> void:
-	draw_circle(focus_pos, 54.0 + sin(time * 1.8) * 8.0, Color(0.45, 0.75, 1.0, 0.08))
-	draw_circle(focus_pos, 18.0, Color(1.0, 1.0, 1.0, 0.08))
 
 
 func _draw_trails() -> void:
