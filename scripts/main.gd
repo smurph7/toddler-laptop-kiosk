@@ -83,8 +83,8 @@ func _handle_key(event: InputEventKey) -> void:
 	var code: int = event.keycode
 	if event.pressed:
 		if not held_keys.has(code):
-			held_keys[code] = {"age": 0.0, "fired": false}
-			_emit_key_burst(code)
+			var burst_pos: Vector2 = _emit_key_burst(code)
+			held_keys[code] = {"age": 0.0, "fired": false, "pos": burst_pos}
 		elif not event.echo:
 			_emit_key_burst(code)
 	else:
@@ -140,7 +140,7 @@ func _update_holds() -> void:
 		hold["age"] += get_process_delta_time()
 		if hold["age"] >= HOLD_SECONDS and not hold["fired"]:
 			hold["fired"] = true
-			_emit_hold_bloom()
+			_emit_hold_bloom(hold["pos"])
 		held_keys[code] = hold
 
 
@@ -164,7 +164,7 @@ func _update_effects(delta: float) -> void:
 	_trim_oldest(rings, MAX_RINGS)
 
 
-func _emit_key_burst(code: int) -> void:
+func _emit_key_burst(code: int) -> Vector2:
 	var special: bool = code == KEY_SPACE or code == KEY_ENTER or code == KEY_BACKSPACE
 	var pos: Vector2 = _keyboard_effect_position()
 	var count: int = 10 if special else 6
@@ -174,6 +174,7 @@ func _emit_key_burst(code: int) -> void:
 	for i in range(int(count * density)):
 		_add_particle(pos + _random_unit() * rng.randf_range(0.0, 28.0), power, base_radius, 0.9)
 	_add_ring(pos, 150.0 if special else 82.0, 0.78, _pick_color())
+	return pos
 
 
 func _emit_click_burst(pos: Vector2) -> void:
@@ -197,9 +198,8 @@ func _emit_trail(pos: Vector2, strength: float) -> void:
 	_trim_oldest(trails, int(MAX_TRAILS * density))
 
 
-func _emit_hold_bloom() -> void:
+func _emit_hold_bloom(pos: Vector2) -> void:
 	var size: Vector2 = _screen_size()
-	var pos: Vector2 = focus_pos.lerp(_random_screen_point(0.12), 0.35)
 	_add_ring(pos, maxf(size.x, size.y) * 0.62, 1.25, Color(0.9, 0.9, 1.0))
 	for i in range(int(34 * density)):
 		_add_particle(pos, 270.0, 18.0, 1.15)
