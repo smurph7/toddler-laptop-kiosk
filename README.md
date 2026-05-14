@@ -22,32 +22,19 @@ Keyboard effects are guided by an invisible drifting focus area. The focus area 
 
 There are two useful ways to use this repo:
 
-- **Set it up as-is on a toddler laptop:** use an exported Linux build and run the executable. The laptop does not need Godot installed.
+- **Set up and run the app on a laptop:** use an exported Linux build and run the executable. The laptop does not need Godot installed.
 - **Use it as a starting point:** install Godot 4.2.x, edit the project, then export your own Linux build.
 
 The target deployment platform is a Debian-based Linux laptop with integrated graphics. The app is offline and self-contained once exported.
 
-## Set Up The Laptop As-Is
+## Run the app
 
-Use this path when you just want the toy laptop app running on the child-facing machine.
+Use this path when you just want the app running on the child-facing machine.
 
 Download the latest Linux executable from the project's GitHub Releases page:
 
 ```text
 https://github.com/smurph7/toddler-laptop-kiosk/releases
-```
-
-The file is named:
-
-```text
-toddler-laptop-kiosk.x86_64
-```
-
-On the Debian laptop, create an app folder:
-
-```sh
-mkdir -p ~/toddler-laptop-kiosk
-cd ~/toddler-laptop-kiosk
 ```
 
 Or download the latest release asset directly from the command line:
@@ -65,7 +52,30 @@ chmod +x toddler-laptop-kiosk.x86_64
 
 The laptop does not need the Godot editor for this path.
 
-## Customize Or Rebuild
+## Controls
+
+Child-facing controls:
+
+- Any key: create a colourful burst.
+- Space, Enter, Backspace: create a larger burst.
+- Hold any key: create a larger bloom after about one second.
+- Move mouse or touchpad: create trails.
+- Click: create a burst at the cursor.
+- Hold mouse button: continuously emit trails.
+
+Adult-only control:
+
+- `Ctrl + Alt + Q`: quit the app.
+
+There is no visible quit button or settings menu.
+
+## Fullscreen And Cursor Behaviour
+
+The app requests fullscreen mode on launch and uses a borderless fullscreen project configuration. The mouse cursor is visible while moving, then hides after a short period of inactivity.
+
+Linux kiosk lockdown, boot-to-app setup, desktop hiding, and system-level controls are handled outside this Godot project.
+
+## For Devs - Customize Or Rebuild
 
 Use this path when you want to change the app or create a fresh exported build yourself.
 
@@ -107,48 +117,13 @@ In Godot:
 toddler-laptop-kiosk.x86_64
 ```
 
-The preset embeds the PCK data into the executable, so the build should be a single Linux executable. The exported executable is ignored by Git; upload it to GitHub Releases when you want others to install it easily.
+The preset embeds the PCK data into the executable, so the build should be a single Linux executable.
 
 After exporting locally, you can run the exported build from the repo root with:
 
 ```sh
 ./toddler-laptop-kiosk.sh
 ```
-
-### Publish A Release
-
-When you are happy with an exported build:
-
-1. Create a GitHub Release, for example `v0.1.0`.
-2. Upload `toddler-laptop-kiosk.x86_64` as a release asset.
-3. Use release notes to describe what changed.
-
-Do not commit `toddler-laptop-kiosk.x86_64` to the repo. The source repo stays small; Releases carry downloadable app builds.
-
-Do not use Docker as the runtime for the toddler laptop. This is a fullscreen graphical kiosk app, and the project explicitly avoids Docker as a runtime dependency.
-
-## Controls
-
-Child-facing controls:
-
-- Any key: create a colourful burst.
-- Space, Enter, Backspace: create a larger burst.
-- Hold any key: create a larger bloom after about one second.
-- Move mouse or touchpad: create trails.
-- Click: create a burst at the cursor.
-- Hold mouse button: continuously emit trails.
-
-Adult-only control:
-
-- `Ctrl + Alt + Q`: quit the app.
-
-There is no visible quit button or settings menu.
-
-## Fullscreen And Cursor Behaviour
-
-The app requests fullscreen mode on launch and uses a borderless fullscreen project configuration. The mouse cursor is visible while moving, then hides after a short period of inactivity.
-
-Linux kiosk lockdown, boot-to-app setup, desktop hiding, and system-level controls are handled outside this Godot project.
 
 ## Project Structure
 
