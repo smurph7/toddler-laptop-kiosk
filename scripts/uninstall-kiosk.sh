@@ -7,6 +7,7 @@ SERVICE_NAME="${SERVICE_NAME:-toddler-laptop-kiosk.service}"
 
 STATE_FILE="$APP_DIR/install-state.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
+DEFAULT_APP_DIR="/opt/toddler-laptop-kiosk"
 
 require_root() {
 	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -63,9 +64,20 @@ restore_display_manager_if_needed() {
 }
 
 remove_app_dir() {
-	if [ -d "$APP_DIR" ]; then
-		echo "Removing app directory: $APP_DIR"
-		rm -rf "$APP_DIR"
+	local canonical_app_dir
+	local canonical_default_app_dir
+
+	canonical_app_dir="$(realpath -m "$APP_DIR")"
+	canonical_default_app_dir="$(realpath -m "$DEFAULT_APP_DIR")"
+
+	if [ "$canonical_app_dir" != "$canonical_default_app_dir" ] && [ "${canonical_app_dir#"$canonical_default_app_dir"/}" = "$canonical_app_dir" ]; then
+		echo "Refusing to remove APP_DIR outside $canonical_default_app_dir: $APP_DIR"
+		exit 1
+	fi
+
+	if [ -d "$canonical_app_dir" ]; then
+		echo "Removing app directory: $canonical_app_dir"
+		rm -rf "$canonical_app_dir"
 	fi
 }
 
@@ -82,6 +94,10 @@ remove_kiosk_user_if_requested() {
 
 main() {
 	require_root
+	if ! command -v realpath >/dev/null 2>&1; then
+		echo "Missing required command: realpath"
+		exit 1
+	fi
 
 	echo "Toddler Laptop Kiosk uninstaller"
 	echo

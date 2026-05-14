@@ -24,14 +24,16 @@ If any are missing, install the relevant Debian packages first. Common package n
 
 The laptop needs network access during setup so it can download the latest release. After installation, the app itself runs offline.
 
+Get the expected SHA-256 digest for the release executable before installing. The installer refuses to install a downloaded executable unless `RELEASE_SHA256` matches the file.
+
 ## Install
 
 Download or clone this repository onto the target laptop.
 
-From the repository root, run:
+From the repository root, run with the expected release digest:
 
 ```sh
-sudo scripts/install-kiosk.sh
+sudo RELEASE_SHA256=<expected-sha256> scripts/install-kiosk.sh
 ```
 
 By default, the installer:
@@ -39,9 +41,10 @@ By default, the installer:
 - creates or reuses the `toddlerkiosk` user
 - installs the app into `/opt/toddler-laptop-kiosk`
 - downloads the latest release executable from GitHub
+- verifies the executable against `RELEASE_SHA256`
 - writes `/etc/systemd/system/toddler-laptop-kiosk.service`
 - asks before disabling `display-manager.service`
-- enables the kiosk service if the display manager is not in the way
+- enables the kiosk service before making display-manager changes
 
 If the installer asks about disabling `display-manager.service`, choose `y` only when this laptop is intended to boot straight into the kiosk app.
 
@@ -114,8 +117,10 @@ KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk sudo -E scripts/uninstal
 You can also override the release URL:
 
 ```sh
-RELEASE_URL=https://example.com/toddler-laptop-kiosk.x86_64 sudo -E scripts/install-kiosk.sh
+RELEASE_URL=https://example.com/toddler-laptop-kiosk.x86_64 RELEASE_SHA256=<expected-sha256> sudo -E scripts/install-kiosk.sh
 ```
+
+For safety, the uninstaller only removes `APP_DIR` when it is `/opt/toddler-laptop-kiosk` or a child path under that directory.
 
 ## Current Limits
 

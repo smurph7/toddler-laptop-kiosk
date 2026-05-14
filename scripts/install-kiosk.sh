@@ -5,6 +5,7 @@ KIOSK_USER="${KIOSK_USER:-toddlerkiosk}"
 APP_DIR="${APP_DIR:-/opt/toddler-laptop-kiosk}"
 SERVICE_NAME="${SERVICE_NAME:-toddler-laptop-kiosk.service}"
 RELEASE_URL="${RELEASE_URL:-https://github.com/smurph7/toddler-laptop-kiosk/releases/latest/download/toddler-laptop-kiosk.x86_64}"
+RELEASE_SHA256="${RELEASE_SHA256:-}"
 
 APP_EXE="$APP_DIR/toddler-laptop-kiosk.x86_64"
 LAUNCH_SCRIPT="$APP_DIR/launch-kiosk.sh"
@@ -50,14 +51,29 @@ create_kiosk_user() {
 
 install_app_files() {
 	local temp_file
+	local actual_sha256
 
 	echo "Installing app into: $APP_DIR"
 	install -d -m 0755 "$APP_DIR"
+
+	if [ -z "$RELEASE_SHA256" ]; then
+		echo "RELEASE_SHA256 must be set to the expected SHA-256 digest for:"
+		echo "$RELEASE_URL"
+		exit 1
+	fi
 
 	temp_file="$(mktemp)"
 	echo "Downloading latest release:"
 	echo "$RELEASE_URL"
 	wget -O "$temp_file" "$RELEASE_URL"
+	actual_sha256="$(sha256sum "$temp_file" | cut -d' ' -f1)"
+	if [ "$actual_sha256" != "$RELEASE_SHA256" ]; then
+		rm -f "$temp_file"
+		echo "Downloaded release checksum did not match RELEASE_SHA256."
+		echo "Expected: $RELEASE_SHA256"
+		echo "Actual:   $actual_sha256"
+		exit 1
+	fi
 	install -m 0755 "$temp_file" "$APP_EXE"
 	rm -f "$temp_file"
 
@@ -136,8 +152,12 @@ handle_display_manager() {
 		echo "A graphical display manager is active or enabled."
 		echo "For bare kiosk boot, it should be disabled so tty1 can run only the kiosk app."
 		if confirm "Disable display-manager.service now?"; then
+			cat >"$STATE_FILE" <<EOF
+DISPLAY_MANAGER_DISABLED=1
+EOF
+			enable_kiosk_service
 			systemctl disable --now display-manager.service
-			disabled_display_manager="1"
+			return 0
 		else
 			cat >"$STATE_FILE" <<EOF
 DISPLAY_MANAGER_DISABLED=0
@@ -171,6 +191,8 @@ main() {
 	require_command xinit
 	require_command xset
 	require_command wget
+	require_command sha256sum
+	require_command cut
 	require_command systemctl
 	require_command getent
 	require_command useradd
@@ -181,6 +203,7 @@ main() {
 	echo "App dir:     $APP_DIR"
 	echo "Service:     $SERVICE_NAME"
 	echo "Release URL: $RELEASE_URL"
+	echo "SHA-256:     $RELEASE_SHA256"
 	echo
 
 	create_kiosk_user
@@ -189,7 +212,9 @@ main() {
 	reload_systemd
 
 	if handle_display_manager; then
-		enable_kiosk_service
+		if ! display_manager_active_or_enabled; then
+			enable_kiosk_service
+		fi
 		echo
 		echo "Kiosk setup complete. Reboot to start the app on tty1:"
 		echo "  sudo reboot"

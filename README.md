@@ -68,7 +68,7 @@ docs/kiosk-setup.md
 Then, from this repository on the target laptop:
 
 ```sh
-sudo scripts/install-kiosk.sh
+sudo RELEASE_SHA256=<expected-sha256> scripts/install-kiosk.sh
 ```
 
 To reverse the setup:
