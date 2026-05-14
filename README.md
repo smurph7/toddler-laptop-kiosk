@@ -20,9 +20,10 @@ Keyboard effects are guided by an invisible drifting focus area. The focus area 
 
 ## Who This Is For
 
-There are two useful ways to use this repo:
+There are three useful ways to use this repo:
 
 - **Set up and run the app on a laptop:** use an exported Linux build and run the executable. The laptop does not need Godot installed.
+- **Turn a Debian laptop into a kiosk appliance:** use the setup scripts to install the latest release and start it automatically on boot.
 - **Use it as a starting point:** install Godot 4.2.x, edit the project, then export your own Linux build.
 
 The target deployment platform is a Debian-based Linux laptop with integrated graphics. The app is offline and self-contained once exported.
@@ -51,6 +52,30 @@ chmod +x toddler-laptop-kiosk.x86_64
 ```
 
 The laptop does not need the Godot editor for this path.
+
+## Boot To Kiosk
+
+Use this path when the laptop's only job is to run this app.
+
+The kiosk setup scripts are Debian-focused. They install the latest release executable, create a dedicated kiosk user, and configure systemd to start the app on boot in a bare X session.
+
+Read the full walkthrough first:
+
+```text
+docs/kiosk-setup.md
+```
+
+Then, from this repository on the target laptop:
+
+```sh
+sudo scripts/install-kiosk.sh
+```
+
+To reverse the setup:
+
+```sh
+sudo scripts/uninstall-kiosk.sh
+```
 
 ## Controls
 
@@ -133,7 +158,10 @@ toddler-laptop-kiosk.sh  Convenience launcher for local exported builds
 project.godot            Godot project configuration
 scenes/main.tscn         Main interactive scene
 scripts/main.gd          Input handling, effect spawning, drawing, limits
+scripts/install-kiosk.sh Debian kiosk installer
+scripts/uninstall-kiosk.sh Debian kiosk uninstaller
 docs/mvp.md              Current build target
+docs/kiosk-setup.md      Debian boot-to-kiosk walkthrough
 docs/roadmap.md          Future ideas, not active requirements
 AGENTS.md                Project rules for coding agents
 ```

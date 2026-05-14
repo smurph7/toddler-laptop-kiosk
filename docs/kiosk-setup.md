@@ -1,0 +1,122 @@
+# Kiosk Setup
+
+This guide turns a Debian-based laptop into a bare Toddler Laptop Kiosk appliance.
+
+The setup script installs the latest GitHub release executable, creates a dedicated kiosk user, and starts the app on boot through a systemd-managed X session on `tty1`.
+
+This is separate from the Godot gameplay code. It changes Linux system configuration and should be run only by an adult installer who can recover the machine from a text console.
+
+## Before You Start
+
+Use a Debian-based laptop with a working X/startx setup.
+
+The installer expects these commands to already exist:
+
+```sh
+startx
+xinit
+xset
+wget
+systemctl
+```
+
+If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, and `wget`.
+
+The laptop needs network access during setup so it can download the latest release. After installation, the app itself runs offline.
+
+## Install
+
+Download or clone this repository onto the target laptop.
+
+From the repository root, run:
+
+```sh
+sudo scripts/install-kiosk.sh
+```
+
+By default, the installer:
+
+- creates or reuses the `toddlerkiosk` user
+- installs the app into `/opt/toddler-laptop-kiosk`
+- downloads the latest release executable from GitHub
+- writes `/etc/systemd/system/toddler-laptop-kiosk.service`
+- asks before disabling `display-manager.service`
+- enables the kiosk service if the display manager is not in the way
+
+If the installer asks about disabling `display-manager.service`, choose `y` only when this laptop is intended to boot straight into the kiosk app.
+
+Then reboot:
+
+```sh
+sudo reboot
+```
+
+On the next boot, the app should start fullscreen on `tty1`.
+
+## Recovery
+
+If you need to leave the kiosk app:
+
+1. Press `Ctrl + Alt + F2` to switch to another text console.
+2. Log in as an admin user.
+3. Stop the kiosk service:
+
+```sh
+sudo systemctl stop toddler-laptop-kiosk.service
+```
+
+To keep it from starting on future boots:
+
+```sh
+sudo systemctl disable toddler-laptop-kiosk.service
+```
+
+The app also has an adult-only quit shortcut:
+
+```text
+Ctrl + Alt + Q
+```
+
+Because the systemd service restarts the app automatically, quitting the app is mainly useful for quick checks. Use `systemctl stop` when you want it to stay stopped.
+
+## Uninstall
+
+From the repository root, run:
+
+```sh
+sudo scripts/uninstall-kiosk.sh
+```
+
+The uninstaller:
+
+- stops and disables the kiosk service
+- removes the systemd unit
+- removes `/opt/toddler-laptop-kiosk`
+- asks before deleting the `toddlerkiosk` user and home directory
+- offers to re-enable `display-manager.service` if the installer disabled it
+
+Reboot after uninstalling if you want to confirm normal boot behaviour.
+
+## Maintainer Overrides
+
+The scripts support a few environment overrides for testing or custom installs:
+
+```sh
+KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk sudo -E scripts/install-kiosk.sh
+```
+
+Use the same overrides for uninstalling a custom install:
+
+```sh
+KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk sudo -E scripts/uninstall-kiosk.sh
+```
+
+You can also override the release URL:
+
+```sh
+RELEASE_URL=https://example.com/toddler-laptop-kiosk.x86_64 sudo -E scripts/install-kiosk.sh
+```
+
+## Current Limits
+
+This setup handles booting into the app. It does not configure deeper lockdown such as BIOS settings, a custom splash screen, package removal, browser removal, power-button policy, or a child-proof shutdown flow.
