@@ -1,5 +1,6 @@
 .godot/
 builds/
+toddler-laptop-kiosk.x86_64
 *.pck
 *.tmp
 *.translation
