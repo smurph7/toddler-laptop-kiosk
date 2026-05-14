@@ -254,8 +254,30 @@ Future deployment improvements:
 - hidden Linux desktop
 - simplified shutdown flow
 - kiosk appliance packaging
+- optional repo-managed setup scripts for the target laptop
 
 These are deployment enhancements rather than gameplay features.
+
+## Kiosk Setup Scripts
+
+Future scripts may live in this repository and be run manually on the Debian laptop by an adult installer.
+
+Possible responsibilities:
+
+- create or configure a dedicated kiosk user
+- install the latest release executable into a stable local app directory
+- create a desktop autostart entry or systemd user service
+- launch the app automatically after login or boot
+- configure display sleep, cursor visibility, and basic power behaviour
+- provide a reversible uninstall/reset script
+
+Scripts should:
+
+- be explicit about the system changes they make
+- avoid destructive changes without confirmation
+- remain Debian-focused
+- avoid Docker as a runtime dependency
+- keep Linux lockdown separate from Godot gameplay code
 
 ---
 
