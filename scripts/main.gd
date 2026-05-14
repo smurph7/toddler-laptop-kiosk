@@ -5,6 +5,7 @@ const MAX_TRAILS: int = 140
 const MAX_RINGS: int = 18
 const CURSOR_IDLE_SECONDS: float = 2.2
 const HOLD_SECONDS: float = 1.0
+const RIBBON_POINT_COUNT: int = 48
 
 const PALETTE: Array[Color] = [
 	Color(0.25, 0.95, 1.0),
@@ -246,11 +247,16 @@ func _draw_background(size: Vector2) -> void:
 	for band in range(3):
 		var points: PackedVector2Array = PackedVector2Array()
 		var y_base: float = size.y * (0.22 + band * 0.23)
-		for step in range(10):
-			var x: float = size.x * step / 9.0
-			var y: float = y_base + sin(time * 0.55 + step * 0.75 + band * 1.8) * 34.0
+		for step in range(RIBBON_POINT_COUNT):
+			var progress: float = float(step) / float(RIBBON_POINT_COUNT - 1)
+			var x: float = lerpf(-24.0, size.x + 24.0, progress)
+			var y: float = y_base
+			y += sin(time * 0.42 + progress * TAU * 1.25 + band * 1.8) * 32.0
+			y += sin(time * 0.24 + progress * TAU * 2.1 + band * 0.9) * 13.0
 			points.append(Vector2(x, y))
-		draw_polyline(points, _with_alpha(PALETTE[(band + 2) % PALETTE.size()], 0.16), 7.0, true)
+		var ribbon_color: Color = PALETTE[(band + 2) % PALETTE.size()]
+		draw_polyline(points, _with_alpha(ribbon_color, 0.055), 16.0, true)
+		draw_polyline(points, _with_alpha(ribbon_color, 0.13), 5.0, true)
 
 
 func _draw_trails() -> void:
