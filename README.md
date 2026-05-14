@@ -31,29 +31,34 @@ The target deployment platform is a Debian-based Linux laptop with integrated gr
 
 Use this path when you just want the toy laptop app running on the child-facing machine.
 
-You need an exported Linux executable:
+Download the latest Linux executable from the project's GitHub Releases page:
 
-- If someone has already given you `toddler-laptop-kiosk.x86_64`, use that.
-- If you only have the source repo, follow [Customize Or Rebuild](#customize-or-rebuild) once to create `builds/toddler-laptop-kiosk.x86_64`.
+```text
+https://github.com/smurph7/toddler-laptop-kiosk/releases
+```
+
+The file is named:
+
+```text
+toddler-laptop-kiosk.x86_64
+```
 
 On the Debian laptop, create an app folder:
 
 ```sh
 mkdir -p ~/toddler-laptop-kiosk
-```
-
-Copy the exported file into that folder. For example, from another machine:
-
-```sh
-scp builds/toddler-laptop-kiosk.x86_64 user@laptop.local:~/toddler-laptop-kiosk/
-```
-
-Use the laptop username, hostname, or IP address that matches your setup.
-
-Then run it on the laptop:
-
-```sh
 cd ~/toddler-laptop-kiosk
+```
+
+Or download the latest release asset directly from the command line:
+
+```sh
+wget https://github.com/smurph7/toddler-laptop-kiosk/releases/latest/download/toddler-laptop-kiosk.x86_64
+```
+
+Then make it executable and run it:
+
+```sh
 chmod +x toddler-laptop-kiosk.x86_64
 ./toddler-laptop-kiosk.x86_64
 ```
@@ -99,16 +104,26 @@ In Godot:
 5. Export to:
 
 ```text
-builds/toddler-laptop-kiosk.x86_64
+toddler-laptop-kiosk.x86_64
 ```
 
-The preset embeds the PCK data into the executable, so the build should be a single Linux executable.
+The preset embeds the PCK data into the executable, so the build should be a single Linux executable. The exported executable is ignored by Git; upload it to GitHub Releases when you want others to install it easily.
 
 After exporting locally, you can run the exported build from the repo root with:
 
 ```sh
 ./toddler-laptop-kiosk.sh
 ```
+
+### Publish A Release
+
+When you are happy with an exported build:
+
+1. Create a GitHub Release, for example `v0.1.0`.
+2. Upload `toddler-laptop-kiosk.x86_64` as a release asset.
+3. Use release notes to describe what changed.
+
+Do not commit `toddler-laptop-kiosk.x86_64` to the repo. The source repo stays small; Releases carry downloadable app builds.
 
 Do not use Docker as the runtime for the toddler laptop. This is a fullscreen graphical kiosk app, and the project explicitly avoids Docker as a runtime dependency.
 
