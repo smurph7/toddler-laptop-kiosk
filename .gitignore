@@ -1,6 +1,7 @@
 .godot/
 export.cfg
-export_presets.cfg
+builds/
+toddler-laptop-kiosk.x86_64
+*.pck
 *.tmp
 *.translation
-

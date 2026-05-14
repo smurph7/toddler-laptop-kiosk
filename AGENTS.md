@@ -192,6 +192,6 @@ Use:
 
 - `docs/mvp.md` for the current build target
 - `docs/roadmap.md` for future ideas
-- `docs/setup-linux.md` for kiosk deployment/setup notes
+- `README.md` for setup, running, export, and kiosk deployment notes
 
 Do not treat roadmap items as active requirements.
