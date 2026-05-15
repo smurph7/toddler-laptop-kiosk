@@ -10,7 +10,7 @@ This is separate from the Godot gameplay code. It changes Linux system configura
 
 Use a Debian-based laptop with a working X/startx setup.
 
-The installer expects these commands to already exist:
+The installer expects these commands to already exist on the target laptop:
 
 ```sh
 startx
@@ -18,25 +18,45 @@ xinit
 xset
 wget
 systemctl
+sha256sum
 ```
 
-If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, and `wget`.
+If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, `wget`, and `coreutils`.
 
 The optional special-key lockdown also uses `xmodmap`, which is usually included in `x11-xserver-utils`.
 
 The laptop needs network access during setup so it can download the latest release. After installation, the app itself runs offline.
 
-Get the expected SHA-256 digest for the release executable before installing. The installer refuses to install a downloaded executable unless `RELEASE_SHA256` matches the file.
-
 ## Install
 
 Download or clone this repository onto the target laptop.
 
-From the repository root, run with the expected release digest:
+Open a terminal in the repository root. That means the project folder that contains `README.md`, `project.godot`, and the `scripts/` directory.
+
+Before running the installer, get the SHA-256 checksum for the release executable. The installer uses this checksum to make sure the file it downloads is the same file you meant to install.
+
+Best option: use a checksum published alongside the GitHub release, if one exists.
+
+If there is no published checksum, download the release executable yourself and calculate it:
 
 ```sh
-sudo RELEASE_SHA256=<expected-sha256> scripts/install-kiosk.sh
+wget -O toddler-laptop-kiosk.x86_64 https://github.com/smurph7/toddler-laptop-kiosk/releases/latest/download/toddler-laptop-kiosk.x86_64
+sha256sum toddler-laptop-kiosk.x86_64
 ```
+
+The output looks like this:
+
+```text
+abc123...  toddler-laptop-kiosk.x86_64
+```
+
+Copy the long checksum before the filename. Use that value as `RELEASE_SHA256`:
+
+```sh
+sudo env RELEASE_SHA256=<sha256-from-previous-step> scripts/install-kiosk.sh
+```
+
+This checksum step catches accidental wrong, changed, or incomplete downloads during install. If the GitHub release itself is not trusted, calculate the checksum from a build you made yourself and host that exact file somewhere the target laptop can download with `wget`, then pass its URL with `RELEASE_URL`.
 
 By default, the installer:
 
@@ -68,13 +88,13 @@ During install, you can enable special-key lockdown for the bare X kiosk session
 You can choose the option interactively, or set it explicitly:
 
 ```sh
-sudo RELEASE_SHA256=<expected-sha256> KIOSK_LOCKDOWN_KEYS=yes scripts/install-kiosk.sh
+sudo env RELEASE_SHA256=<sha256-from-previous-step> KIOSK_LOCKDOWN_KEYS=yes scripts/install-kiosk.sh
 ```
 
 To skip it explicitly:
 
 ```sh
-sudo RELEASE_SHA256=<expected-sha256> KIOSK_LOCKDOWN_KEYS=no scripts/install-kiosk.sh
+sudo env RELEASE_SHA256=<sha256-from-previous-step> KIOSK_LOCKDOWN_KEYS=no scripts/install-kiosk.sh
 ```
 
 This keeps `Ctrl + Alt + F2` recovery available. Some Fn/media keys may still work if the laptop firmware handles them below Linux/X11; those need BIOS/UEFI or hardware-specific settings. Power-button behaviour is also separate and should be managed with Linux `logind` policy only if the adult installer wants that extra lockdown.
@@ -128,25 +148,25 @@ Reboot after uninstalling if you want to confirm normal boot behaviour.
 The scripts support a few environment overrides for testing or custom installs:
 
 ```sh
-KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk sudo -E scripts/install-kiosk.sh
+sudo env KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk RELEASE_SHA256=<sha256-from-previous-step> scripts/install-kiosk.sh
 ```
 
 Use the same overrides for uninstalling a custom install:
 
 ```sh
-KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk sudo -E scripts/uninstall-kiosk.sh
+sudo env KIOSK_USER=childkiosk APP_DIR=/opt/toddler-laptop-kiosk scripts/uninstall-kiosk.sh
 ```
 
 You can also override the release URL:
 
 ```sh
-RELEASE_URL=https://example.com/toddler-laptop-kiosk.x86_64 RELEASE_SHA256=<expected-sha256> sudo -E scripts/install-kiosk.sh
+sudo env RELEASE_URL=https://example.com/toddler-laptop-kiosk.x86_64 RELEASE_SHA256=<sha256-for-that-file> scripts/install-kiosk.sh
 ```
 
 You can preselect special-key lockdown for scripted installs:
 
 ```sh
-KIOSK_LOCKDOWN_KEYS=yes RELEASE_SHA256=<expected-sha256> sudo -E scripts/install-kiosk.sh
+sudo env KIOSK_LOCKDOWN_KEYS=yes RELEASE_SHA256=<sha256-from-previous-step> scripts/install-kiosk.sh
 ```
 
 For safety, the uninstaller only removes `APP_DIR` when it is `/opt/toddler-laptop-kiosk` or a child path under that directory.

@@ -4,3 +4,4 @@ toddler-laptop-kiosk.x86_64
 *.pck
 *.tmp
 *.translation
+docs/reviews/latest.md

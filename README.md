@@ -59,22 +59,31 @@ Use this path when the laptop's only job is to run this app.
 
 The kiosk setup scripts are Debian-focused. They install the latest release executable, create a dedicated kiosk user, and configure systemd to start the app on boot in a bare X session.
 
-Read the full walkthrough first:
+Read the full walkthrough first. It explains the required checksum, the commands to run, recovery steps, and the optional special-key lockdown:
 
 ```text
 docs/kiosk-setup.md
 ```
 
-Then, from this repository on the target laptop:
+Short version, from this repository on the target laptop:
+
+1. Download the release executable and get the SHA-256 checksum for it:
 
 ```sh
-sudo RELEASE_SHA256=<expected-sha256> scripts/install-kiosk.sh
+wget -O toddler-laptop-kiosk.x86_64 https://github.com/smurph7/toddler-laptop-kiosk/releases/latest/download/toddler-laptop-kiosk.x86_64
+sha256sum toddler-laptop-kiosk.x86_64
+```
+
+2. Use the long checksum printed by `sha256sum` as `RELEASE_SHA256`:
+
+```sh
+sudo env RELEASE_SHA256=<sha256-from-previous-step> scripts/install-kiosk.sh
 ```
 
 During install, you can enable special-key lockdown for the kiosk session. This uses X11 `xmodmap` to disable common X-visible keys such as PrintScreen, volume, brightness, sleep, display toggle, touchpad toggle, and Wi-Fi toggle before the app starts:
 
 ```sh
-sudo RELEASE_SHA256=<expected-sha256> KIOSK_LOCKDOWN_KEYS=yes scripts/install-kiosk.sh
+sudo env RELEASE_SHA256=<sha256-from-previous-step> KIOSK_LOCKDOWN_KEYS=yes scripts/install-kiosk.sh
 ```
 
 Some laptop Fn/media keys are handled by firmware or hardware before Godot can see them. Those may need BIOS/UEFI or hardware-specific settings. Power-button behaviour is a separate Linux `logind` policy choice and is not changed by the default installer.
