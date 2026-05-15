@@ -19,6 +19,7 @@ xset
 wget
 systemctl
 sha256sum
+sudo
 ```
 
 If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, `wget`, and `coreutils`.
@@ -32,6 +33,24 @@ The laptop needs network access during setup so it can download the latest relea
 Download or clone this repository onto the target laptop.
 
 Open a terminal in the repository root. That means the project folder that contains `README.md`, `project.godot`, and the `scripts/` directory.
+
+The easiest install path calculates the release checksum for you, prints it, and passes it to the kiosk installer:
+
+```sh
+scripts/install-latest-kiosk.sh
+```
+
+You can still preselect special-key lockdown:
+
+```sh
+KIOSK_LOCKDOWN_KEYS=yes scripts/install-latest-kiosk.sh
+```
+
+The helper downloads the release once to calculate its SHA-256 checksum, then runs `scripts/install-kiosk.sh` with `sudo`.
+
+## Manual Checksum Install
+
+Use this path if you want to calculate or verify the checksum yourself before installing.
 
 Before running the installer, get the SHA-256 checksum for the release executable. The installer uses this checksum to make sure the file it downloads is the same file you meant to install.
 
@@ -57,6 +76,8 @@ sudo env RELEASE_SHA256=<sha256-from-previous-step> scripts/install-kiosk.sh
 ```
 
 This checksum step catches accidental wrong, changed, or incomplete downloads during install. If the GitHub release itself is not trusted, calculate the checksum from a build you made yourself and host that exact file somewhere the target laptop can download with `wget`, then pass its URL with `RELEASE_URL`.
+
+## What The Installer Does
 
 By default, the installer:
 

@@ -67,6 +67,14 @@ docs/kiosk-setup.md
 
 Short version, from this repository on the target laptop:
 
+```sh
+scripts/install-latest-kiosk.sh
+```
+
+The helper calculates the release checksum and passes it to the kiosk installer for you.
+
+Manual checksum version:
+
 1. Download the release executable and get the SHA-256 checksum for it:
 
 ```sh
