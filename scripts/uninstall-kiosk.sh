@@ -8,6 +8,7 @@ SERVICE_NAME="${SERVICE_NAME:-toddler-laptop-kiosk.service}"
 STATE_FILE="$APP_DIR/install-state.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 DEFAULT_APP_DIR="/opt/toddler-laptop-kiosk"
+PENDING_DISPLAY_MANAGER_START=""
 
 require_root() {
 	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -45,26 +46,20 @@ remove_service() {
 	fi
 }
 
-enable_and_start_unit() {
+enable_unit() {
 	local unit_name="$1"
 
-	if systemctl enable --now "$unit_name" >/dev/null 2>&1; then
-		return 0
-	fi
-
-	if systemctl enable "$unit_name" >/dev/null 2>&1 && systemctl start "$unit_name" >/dev/null 2>&1; then
-		return 0
-	fi
-
-	return 1
+	systemctl enable "$unit_name" >/dev/null 2>&1
 }
 
 restore_display_manager_unit() {
 	local preferred_unit="$1"
 	local candidate
 
-	if enable_and_start_unit "$preferred_unit"; then
-		echo "Started display manager: $preferred_unit"
+	if enable_unit "$preferred_unit"; then
+		PENDING_DISPLAY_MANAGER_START="$preferred_unit"
+		echo "Enabled display manager: $preferred_unit"
+		echo "It will be started after uninstall cleanup finishes."
 		return 0
 	fi
 
@@ -73,8 +68,10 @@ restore_display_manager_unit() {
 			continue
 		fi
 
-		if enable_and_start_unit "$candidate"; then
-			echo "Started display manager: $candidate"
+		if enable_unit "$candidate"; then
+			PENDING_DISPLAY_MANAGER_START="$candidate"
+			echo "Enabled display manager: $candidate"
+			echo "It will be started after uninstall cleanup finishes."
 			return 0
 		fi
 	done
@@ -92,7 +89,7 @@ restore_display_manager_if_needed() {
 	local display_manager_disabled="0"
 	local display_manager_unit="display-manager.service"
 	local should_offer_restore="0"
-	local restore_prompt="No active or enabled display manager was detected. Re-enable and start one now?"
+	local restore_prompt="No active or enabled display manager was detected. Re-enable it and start it after uninstall finishes?"
 
 	if [ -f "$STATE_FILE" ]; then
 		# shellcheck disable=SC1090
@@ -107,7 +104,7 @@ restore_display_manager_if_needed() {
 
 	if [ "$display_manager_disabled" = "1" ]; then
 		should_offer_restore="1"
-		restore_prompt="This installer disabled the display manager. Re-enable and start it now?"
+		restore_prompt="This installer disabled the display manager. Re-enable it and start it after uninstall finishes?"
 	elif ! display_manager_active_or_enabled; then
 		should_offer_restore="1"
 	fi
@@ -124,6 +121,25 @@ restore_display_manager_if_needed() {
 				echo "  sudo systemctl enable --now sddm.service"
 			fi
 		fi
+	fi
+}
+
+start_pending_display_manager_if_needed() {
+	if [ -z "$PENDING_DISPLAY_MANAGER_START" ]; then
+		return
+	fi
+
+	echo
+	echo "Starting display manager: $PENDING_DISPLAY_MANAGER_START"
+	if systemctl --no-block start "$PENDING_DISPLAY_MANAGER_START" >/dev/null 2>&1; then
+		echo "The graphical login should appear shortly."
+	else
+		echo "Could not start the display manager automatically."
+		echo "Try one of these, depending on what this laptop uses:"
+		echo "  sudo systemctl enable --now gdm.service"
+		echo "  sudo systemctl enable --now gdm3.service"
+		echo "  sudo systemctl enable --now lightdm.service"
+		echo "  sudo systemctl enable --now sddm.service"
 	fi
 }
 
@@ -178,6 +194,7 @@ main() {
 
 	echo
 	echo "Kiosk uninstall complete."
+	start_pending_display_manager_if_needed
 }
 
 main "$@"

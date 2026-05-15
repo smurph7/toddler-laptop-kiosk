@@ -12,6 +12,7 @@ APP_EXE="$APP_DIR/toddler-laptop-kiosk.x86_64"
 LAUNCH_SCRIPT="$APP_DIR/launch-kiosk.sh"
 XSESSION_SCRIPT="$APP_DIR/xsession.sh"
 STARTX_WRAPPER_SCRIPT="$APP_DIR/run-startx.sh"
+PRESTART_SCRIPT="$APP_DIR/prestart-kiosk.sh"
 KEY_LOCKDOWN_SCRIPT="$APP_DIR/lockdown-special-keys.sh"
 RECOVERY_HINT_SCRIPT="$APP_DIR/show-recovery-hint.sh"
 RUNTIME_DIRECTORY_NAME="${SERVICE_NAME%.service}"
@@ -188,16 +189,41 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
+log() {
+	echo "run-startx: \$*"
+}
+
 rm -f "$APP_EXIT_STATUS_FILE"
 
-set +e
-"$(command -v startx)" "$XSESSION_SCRIPT" -- :0 vt1 -keeptty -nolisten tcp
-startx_status="\$?"
-set -e
+startx_status="1"
+
+for attempt in 1 2 3; do
+	log "starting X session attempt \$attempt"
+	pkill -u "$(id -u "$KIOSK_USER")" -x startx >/dev/null 2>&1 || true
+	pkill -u "$(id -u "$KIOSK_USER")" -x xinit >/dev/null 2>&1 || true
+	pkill -u "$(id -u "$KIOSK_USER")" -x Xorg >/dev/null 2>&1 || true
+	pkill -u "$(id -u "$KIOSK_USER")" -x X >/dev/null 2>&1 || true
+	set +e
+	"$(command -v startx)" "$XSESSION_SCRIPT" -- :0 vt1 -keeptty -nolisten tcp
+	startx_status="\$?"
+	set -e
+	log "startx exited with status \$startx_status"
+
+	if [ -r "$APP_EXIT_STATUS_FILE" ]; then
+		break
+	fi
+
+	if [ "\$startx_status" = "0" ]; then
+		break
+	fi
+
+	sleep 1
+done
 
 if [ -r "$APP_EXIT_STATUS_FILE" ]; then
 	app_status="\$(cat "$APP_EXIT_STATUS_FILE" 2>/dev/null || true)"
 	rm -f "$APP_EXIT_STATUS_FILE"
+	log "app exited with status \${app_status:-unknown}"
 
 	case "\$app_status" in
 		0)
@@ -212,6 +238,22 @@ if [ -r "$APP_EXIT_STATUS_FILE" ]; then
 fi
 
 exit "\$startx_status"
+EOF
+
+	cat >"$PRESTART_SCRIPT" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+"$systemctl_path" stop getty@tty1.service >/dev/null 2>&1 || true
+
+if [ -f /tmp/.X0-lock ]; then
+	x_pid="\$(tr -d '[:space:]' </tmp/.X0-lock 2>/dev/null || true)"
+	if [ -z "\$x_pid" ] || ! kill -0 "\$x_pid" >/dev/null 2>&1; then
+		rm -f /tmp/.X0-lock /tmp/.X11-unix/X0
+	fi
+fi
+
+sleep 1
 EOF
 
 	cat >"$RECOVERY_HINT_SCRIPT" <<EOF
@@ -272,7 +314,7 @@ MESSAGE
 "$systemctl_path" --no-block restart getty@tty1.service >/dev/null 2>&1 || true
 EOF
 
-	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT" "$STARTX_WRAPPER_SCRIPT" "$RECOVERY_HINT_SCRIPT"
+	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT" "$STARTX_WRAPPER_SCRIPT" "$PRESTART_SCRIPT" "$RECOVERY_HINT_SCRIPT"
 	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
 		chmod 0755 "$KEY_LOCKDOWN_SCRIPT"
 	fi
@@ -313,7 +355,7 @@ PAMName=login
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal
-ExecStartPre=+$systemctl_path stop getty@tty1.service
+ExecStartPre=+$PRESTART_SCRIPT
 ExecStart=$STARTX_WRAPPER_SCRIPT
 ExecStopPost=+$RECOVERY_HINT_SCRIPT
 Restart=on-failure

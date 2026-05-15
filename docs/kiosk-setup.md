@@ -89,6 +89,7 @@ By default, the installer:
 - writes `/etc/systemd/system/toddler-laptop-kiosk.service`
 - records the Godot app exit status so an intentional app quit is treated as a clean service stop
 - stops `getty@tty1.service` while the kiosk owns `tty1`, then restores it after a clean quit
+- clears stale X display `:0` lock files only when no matching X process is still alive
 - asks before disabling `display-manager.service`, and records the underlying display manager unit when possible
 - enables the kiosk service before making display-manager changes
 
@@ -223,7 +224,8 @@ The uninstaller:
 - removes the systemd unit
 - removes `/opt/toddler-laptop-kiosk`
 - asks before deleting the `toddlerkiosk` user and home directory
-- offers to re-enable and start the graphical display manager if the installer disabled it, or if no active/enabled display manager is detected during uninstall
+- offers to re-enable the graphical display manager if the installer disabled it, or if no active/enabled display manager is detected during uninstall
+- starts the graphical display manager only after uninstall cleanup finishes, so it does not interrupt the terminal prompts
 
 Different Debian installs expose the display manager under different systemd unit names. The uninstaller first tries the unit recorded during install, then common units such as `gdm.service`, `gdm3.service`, `lightdm.service`, and `sddm.service`.
 
