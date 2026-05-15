@@ -11,7 +11,11 @@ KIOSK_LOCKDOWN_KEYS="${KIOSK_LOCKDOWN_KEYS:-ask}"
 APP_EXE="$APP_DIR/toddler-laptop-kiosk.x86_64"
 LAUNCH_SCRIPT="$APP_DIR/launch-kiosk.sh"
 XSESSION_SCRIPT="$APP_DIR/xsession.sh"
+STARTX_WRAPPER_SCRIPT="$APP_DIR/run-startx.sh"
 KEY_LOCKDOWN_SCRIPT="$APP_DIR/lockdown-special-keys.sh"
+RECOVERY_HINT_SCRIPT="$APP_DIR/show-recovery-hint.sh"
+RUNTIME_DIRECTORY_NAME="${SERVICE_NAME%.service}"
+APP_EXIT_STATUS_FILE="/run/$RUNTIME_DIRECTORY_NAME/app-exit-status"
 STATE_FILE="$APP_DIR/install-state.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 KEY_LOCKDOWN_ENABLED="0"
@@ -119,7 +123,13 @@ install_app_files() {
 set -euo pipefail
 
 cd "$APP_DIR"
-exec "$APP_EXE"
+set +e
+"$APP_EXE"
+app_status="\$?"
+set -e
+
+printf '%s\n' "\$app_status" >"$APP_EXIT_STATUS_FILE" || true
+exit "\$app_status"
 EOF
 
 	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
@@ -172,7 +182,95 @@ fi
 exec "$LAUNCH_SCRIPT"
 EOF
 
-	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT"
+	cat >"$STARTX_WRAPPER_SCRIPT" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+rm -f "$APP_EXIT_STATUS_FILE"
+
+set +e
+"$(command -v startx)" "$XSESSION_SCRIPT" -- :0 vt1 -keeptty -nolisten tcp
+startx_status="\$?"
+set -e
+
+if [ -r "$APP_EXIT_STATUS_FILE" ]; then
+	app_status="\$(cat "$APP_EXIT_STATUS_FILE" 2>/dev/null || true)"
+	rm -f "$APP_EXIT_STATUS_FILE"
+
+	case "\$app_status" in
+		0)
+			exit 0
+			;;
+		""|*[!0-9]*)
+			;;
+		*)
+			exit "\$app_status"
+			;;
+	esac
+fi
+
+exit "\$startx_status"
+EOF
+
+	cat >"$RECOVERY_HINT_SCRIPT" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "\${SERVICE_RESULT:-}" != "success" ]; then
+	cat >/dev/tty1 <<'MESSAGE'
+
+Toddler Laptop Kiosk failed to start.
+
+To run commands, switch away from tty1 first:
+  Press Ctrl+Alt+F2, then log in as an admin user.
+
+Check the service status and logs from tty2:
+  sudo systemctl status $SERVICE_NAME --no-pager -l
+  sudo journalctl -u $SERVICE_NAME -b --no-pager -n 120
+
+If systemd says "start request repeated too quickly", clear the failure state before retrying:
+  sudo systemctl reset-failed $SERVICE_NAME
+  sudo systemctl start $SERVICE_NAME
+
+Restore the tty1 login prompt:
+  sudo systemctl stop $SERVICE_NAME
+  sudo systemctl restart getty@tty1.service
+
+MESSAGE
+
+	systemctl start getty@tty1.service >/dev/null 2>&1 || true
+	exit 0
+fi
+
+cat >/dev/tty1 <<'MESSAGE'
+
+Toddler Laptop Kiosk exited.
+
+To run commands, switch away from tty1 first:
+  Press Ctrl+Alt+F2, then log in as an admin user.
+
+Start kiosk again from tty2:
+  sudo systemctl reset-failed $SERVICE_NAME
+  sudo systemctl start $SERVICE_NAME
+
+Or reboot; the kiosk starts automatically on the next boot:
+  sudo reboot
+
+Restore graphical login instead from tty2:
+  sudo systemctl enable --now display-manager.service
+
+If that does not work, try the display manager this laptop uses:
+  sudo systemctl enable --now gdm.service
+  sudo systemctl enable --now gdm3.service
+  sudo systemctl enable --now lightdm.service
+  sudo systemctl enable --now sddm.service
+
+MESSAGE
+
+systemctl start getty@tty1.service >/dev/null 2>&1 || true
+EOF
+
+	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT" "$STARTX_WRAPPER_SCRIPT" "$RECOVERY_HINT_SCRIPT"
 	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
 		chmod 0755 "$KEY_LOCKDOWN_SCRIPT"
 	fi
@@ -180,10 +278,10 @@ EOF
 }
 
 write_service() {
-	local startx_path
+	local systemctl_path
 	local user_home
 
-	startx_path="$(command -v startx)"
+	systemctl_path="$(command -v systemctl)"
 	user_home="$(getent passwd "$KIOSK_USER" | cut -d: -f6)"
 	if [ -z "$user_home" ]; then
 		echo "Could not determine home directory for user: $KIOSK_USER"
@@ -194,7 +292,8 @@ write_service() {
 	cat >"$SERVICE_PATH" <<EOF
 [Unit]
 Description=Toddler Laptop Kiosk
-After=systemd-user-sessions.service
+After=systemd-user-sessions.service getty@tty1.service
+Conflicts=getty@tty1.service
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
@@ -203,6 +302,8 @@ User=$KIOSK_USER
 WorkingDirectory=$APP_DIR
 Environment=HOME=$user_home
 Environment=XAUTHORITY=$user_home/.Xauthority
+RuntimeDirectory=$RUNTIME_DIRECTORY_NAME
+RuntimeDirectoryMode=0755
 TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
@@ -210,7 +311,9 @@ PAMName=login
 StandardInput=tty
 StandardOutput=journal
 StandardError=journal
-ExecStart=$startx_path "$XSESSION_SCRIPT" -- :0 vt1 -keeptty -nolisten tcp
+ExecStartPre=+$systemctl_path stop getty@tty1.service
+ExecStart=$STARTX_WRAPPER_SCRIPT
+ExecStopPost=+$RECOVERY_HINT_SCRIPT
 Restart=on-failure
 RestartSec=3
 

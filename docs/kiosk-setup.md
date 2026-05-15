@@ -66,6 +66,8 @@ By default, the installer:
 - verifies the executable against `RELEASE_SHA256`
 - asks whether to disable common X11-visible special keys for the kiosk session
 - writes `/etc/systemd/system/toddler-laptop-kiosk.service`
+- records the Godot app exit status so an intentional app quit is treated as a clean service stop
+- stops `getty@tty1.service` while the kiosk owns `tty1`, then restores it after a clean quit
 - asks before disabling `display-manager.service`, and records the underlying display manager unit when possible
 - enables the kiosk service before making display-manager changes
 
@@ -123,13 +125,68 @@ The app also has an adult-only quit shortcut:
 Ctrl + Alt + Q
 ```
 
-This intentionally exits the app and leaves the kiosk service stopped until the next boot or manual restart. To start it again without rebooting:
+This intentionally exits the app and leaves the kiosk service stopped until the next boot or manual restart. The launcher records the Godot app's exit status, so `Ctrl + Alt + Q` is treated as a clean service stop even if `startx` returns a non-zero status while tearing down X.
+
+The service does not prompt to restore the desktop login, because it is not an interactive admin session. Instead, it prints recovery commands on `tty1` after a clean quit.
+
+Do not run the restart command from `tty1` itself. The kiosk service owns `tty1`, so starting it there can reset the login session you are typing in.
+
+To start the kiosk again without rebooting:
+
+1. Press `Ctrl + Alt + F2`.
+2. Log in as an admin user.
+3. Clear any previous failure state and start the hyphenated service name:
 
 ```sh
+sudo systemctl reset-failed toddler-laptop-kiosk.service
 sudo systemctl start toddler-laptop-kiosk.service
 ```
 
+Or just reboot; the kiosk starts automatically on the next boot:
+
+```sh
+sudo reboot
+```
+
+To restore graphical login instead, run this from `tty2`:
+
+```sh
+sudo systemctl enable --now display-manager.service
+```
+
+If that does not work, try the display manager this laptop uses:
+
+```sh
+sudo systemctl enable --now gdm.service
+sudo systemctl enable --now gdm3.service
+sudo systemctl enable --now lightdm.service
+sudo systemctl enable --now sddm.service
+```
+
 If the app or X session crashes unexpectedly, systemd retries it a few times. If startup keeps failing, systemd stops retrying so the laptop does not get stuck flashing between tty1 and the app.
+
+If `systemctl status` says `start request repeated too quickly`, systemd has hit that retry limit. Check the logs before retrying:
+
+```sh
+sudo systemctl status toddler-laptop-kiosk.service --no-pager -l
+sudo journalctl -u toddler-laptop-kiosk.service -b --no-pager -n 120
+```
+
+After reading the error, clear the failure state before starting it again:
+
+```sh
+sudo systemctl reset-failed toddler-laptop-kiosk.service
+sudo systemctl start toddler-laptop-kiosk.service
+```
+
+If `tty1` is left as a black screen with a blinking cursor, switch to another console and restart the login prompt:
+
+```sh
+sudo systemctl stop toddler-laptop-kiosk.service
+sudo systemctl restart getty@tty1.service
+```
+
+Then press `Ctrl + Alt + F1` to return to the restored `tty1` login prompt.
 
 ## Uninstall
 
