@@ -195,6 +195,8 @@ write_service() {
 [Unit]
 Description=Toddler Laptop Kiosk
 After=systemd-user-sessions.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 User=$KIOSK_USER
@@ -209,8 +211,8 @@ StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 ExecStart=$startx_path "$XSESSION_SCRIPT" -- :0 vt1 -keeptty -nolisten tcp
-Restart=always
-RestartSec=2
+Restart=on-failure
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target

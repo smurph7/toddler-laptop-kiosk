@@ -107,7 +107,7 @@ Child-facing controls:
 
 Adult-only control:
 
-- `Ctrl + Alt + Q`: quit the app.
+- `Ctrl + Alt + Q`: quit the app and leave the kiosk stopped until the next boot or manual restart.
 
 There is no visible quit button or settings menu.
 

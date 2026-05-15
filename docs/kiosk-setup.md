@@ -123,7 +123,13 @@ The app also has an adult-only quit shortcut:
 Ctrl + Alt + Q
 ```
 
-Because the systemd service restarts the app automatically, quitting the app is mainly useful for quick checks. Use `systemctl stop` when you want it to stay stopped.
+This intentionally exits the app and leaves the kiosk service stopped until the next boot or manual restart. To start it again without rebooting:
+
+```sh
+sudo systemctl start toddler-laptop-kiosk.service
+```
+
+If the app or X session crashes unexpectedly, systemd retries it a few times. If startup keeps failing, systemd stops retrying so the laptop does not get stuck flashing between tty1 and the app.
 
 ## Uninstall
 
