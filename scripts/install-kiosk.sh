@@ -17,6 +17,7 @@ KEY_LOCKDOWN_SCRIPT="$APP_DIR/lockdown-special-keys.sh"
 RECOVERY_HINT_SCRIPT="$APP_DIR/show-recovery-hint.sh"
 RUNTIME_DIRECTORY_NAME="${SERVICE_NAME%.service}"
 APP_EXIT_STATUS_FILE="/run/$RUNTIME_DIRECTORY_NAME/app-exit-status"
+STARTX_LOG_FILE="/tmp/$SERVICE_NAME.run-startx.log"
 STATE_FILE="$APP_DIR/install-state.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
 KEY_LOCKDOWN_ENABLED="0"
@@ -189,9 +190,19 @@ EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
+log_file="$STARTX_LOG_FILE"
+: >"\$log_file" || true
+exec >>"\$log_file" 2>&1
+
 log() {
-	echo "run-startx: \$*"
+	printf '%s %s\n' "\$(date '+%Y-%m-%d %H:%M:%S')" "run-startx: \$*"
 }
+
+log "wrapper started as user \$(id -un) uid \$(id -u)"
+log "tty: \$(tty 2>/dev/null || echo unknown)"
+log "DISPLAY: \${DISPLAY:-unset}"
+log "XAUTHORITY: \${XAUTHORITY:-unset}"
+log "HOME: \${HOME:-unset}"
 
 rm -f "$APP_EXIT_STATUS_FILE"
 
@@ -271,6 +282,7 @@ To run commands, switch away from tty1 first:
 Check the service status and logs from tty2:
   sudo systemctl status $SERVICE_NAME --no-pager -l
   sudo journalctl -u $SERVICE_NAME -b --no-pager -n 120
+  sudo cat $STARTX_LOG_FILE
 
 If systemd says "start request repeated too quickly", clear the failure state before retrying:
   sudo systemctl reset-failed $SERVICE_NAME

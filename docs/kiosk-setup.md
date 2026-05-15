@@ -192,6 +192,7 @@ If `systemctl status` says `start request repeated too quickly`, systemd has hit
 ```sh
 sudo systemctl status toddler-laptop-kiosk.service --no-pager -l
 sudo journalctl -u toddler-laptop-kiosk.service -b --no-pager -n 120
+sudo cat /tmp/toddler-laptop-kiosk.service.run-startx.log
 ```
 
 After reading the error, clear the failure state before starting it again:
