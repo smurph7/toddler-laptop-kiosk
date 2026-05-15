@@ -71,6 +71,14 @@ Then, from this repository on the target laptop:
 sudo RELEASE_SHA256=<expected-sha256> scripts/install-kiosk.sh
 ```
 
+During install, you can enable special-key lockdown for the kiosk session. This uses X11 `xmodmap` to disable common X-visible keys such as PrintScreen, volume, brightness, sleep, display toggle, touchpad toggle, and Wi-Fi toggle before the app starts:
+
+```sh
+sudo RELEASE_SHA256=<expected-sha256> KIOSK_LOCKDOWN_KEYS=yes scripts/install-kiosk.sh
+```
+
+Some laptop Fn/media keys are handled by firmware or hardware before Godot can see them. Those may need BIOS/UEFI or hardware-specific settings. Power-button behaviour is a separate Linux `logind` policy choice and is not changed by the default installer.
+
 To reverse the setup:
 
 ```sh
@@ -98,7 +106,7 @@ There is no visible quit button or settings menu.
 
 The app requests fullscreen mode on launch and uses a borderless fullscreen project configuration. The mouse cursor is visible while moving, then hides after a short period of inactivity.
 
-Linux kiosk lockdown, boot-to-app setup, desktop hiding, and system-level controls are handled outside this Godot project.
+Linux kiosk lockdown, boot-to-app setup, desktop hiding, and system-level controls are handled outside the Godot gameplay code. The kiosk installer can disable many X11-visible special keys, but Godot cannot reliably block operating-system, firmware, or hardware-level keys by itself.
 
 ## For Devs - Customize Or Rebuild
 

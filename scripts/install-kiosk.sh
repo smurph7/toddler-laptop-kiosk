@@ -6,12 +6,15 @@ APP_DIR="${APP_DIR:-/opt/toddler-laptop-kiosk}"
 SERVICE_NAME="${SERVICE_NAME:-toddler-laptop-kiosk.service}"
 RELEASE_URL="${RELEASE_URL:-https://github.com/smurph7/toddler-laptop-kiosk/releases/latest/download/toddler-laptop-kiosk.x86_64}"
 RELEASE_SHA256="${RELEASE_SHA256:-}"
+KIOSK_LOCKDOWN_KEYS="${KIOSK_LOCKDOWN_KEYS:-ask}"
 
 APP_EXE="$APP_DIR/toddler-laptop-kiosk.x86_64"
 LAUNCH_SCRIPT="$APP_DIR/launch-kiosk.sh"
 XSESSION_SCRIPT="$APP_DIR/xsession.sh"
+KEY_LOCKDOWN_SCRIPT="$APP_DIR/lockdown-special-keys.sh"
 STATE_FILE="$APP_DIR/install-state.env"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
+KEY_LOCKDOWN_ENABLED="0"
 
 require_root() {
 	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -37,6 +40,40 @@ confirm() {
 		y|Y|yes|YES) return 0 ;;
 		*) return 1 ;;
 	esac
+}
+
+configure_key_lockdown() {
+	case "$KIOSK_LOCKDOWN_KEYS" in
+		1|true|TRUE|yes|YES|y|Y|on|ON)
+			KEY_LOCKDOWN_ENABLED="1"
+			;;
+		0|false|FALSE|no|NO|n|N|off|OFF)
+			KEY_LOCKDOWN_ENABLED="0"
+			;;
+		ask|ASK|"")
+			echo
+			echo "The kiosk can disable many X11-visible special keys, such as PrintScreen, volume, brightness, sleep, display, and touchpad toggle."
+			echo "This does not affect normal letter or number keys, and Ctrl+Alt+F2 recovery remains available."
+			if confirm "Enable special-key lockdown for the kiosk session?"; then
+				KEY_LOCKDOWN_ENABLED="1"
+			else
+				KEY_LOCKDOWN_ENABLED="0"
+			fi
+			;;
+		*)
+			echo "Invalid KIOSK_LOCKDOWN_KEYS value: $KIOSK_LOCKDOWN_KEYS"
+			echo "Use one of: ask, yes, no, 1, 0, true, false."
+			exit 1
+			;;
+	esac
+
+	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
+		if ! command -v xmodmap >/dev/null 2>&1; then
+			echo "Special-key lockdown requires xmodmap."
+			echo "Install the Debian package that provides it, usually: sudo apt install x11-xserver-utils"
+			exit 1
+		fi
+	fi
 }
 
 create_kiosk_user() {
@@ -85,6 +122,41 @@ cd "$APP_DIR"
 exec "$APP_EXE"
 EOF
 
+	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
+		cat >"$KEY_LOCKDOWN_SCRIPT" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v xmodmap >/dev/null 2>&1; then
+	echo "xmodmap is not installed; special-key lockdown was skipped." >&2
+	exit 0
+fi
+
+disable_keysym() {
+	local keysym="$1"
+
+	if xmodmap -pke | grep -Eq "(^|[[:space:]])${keysym}($|[[:space:]])"; then
+		xmodmap -e "keysym ${keysym} = NoSymbol" || true
+	fi
+}
+
+disable_keysym Print
+disable_keysym Sys_Req
+disable_keysym XF86AudioMute
+disable_keysym XF86AudioLowerVolume
+disable_keysym XF86AudioRaiseVolume
+disable_keysym XF86MonBrightnessUp
+disable_keysym XF86MonBrightnessDown
+disable_keysym XF86Sleep
+disable_keysym XF86PowerOff
+disable_keysym XF86Display
+disable_keysym XF86TouchpadToggle
+disable_keysym XF86WLAN
+EOF
+	else
+		rm -f "$KEY_LOCKDOWN_SCRIPT"
+	fi
+
 	cat >"$XSESSION_SCRIPT" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
@@ -93,10 +165,17 @@ xset s off
 xset -dpms
 xset s noblank
 
+if [ -x "$KEY_LOCKDOWN_SCRIPT" ]; then
+	"$KEY_LOCKDOWN_SCRIPT"
+fi
+
 exec "$LAUNCH_SCRIPT"
 EOF
 
 	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT"
+	if [ "$KEY_LOCKDOWN_ENABLED" = "1" ]; then
+		chmod 0755 "$KEY_LOCKDOWN_SCRIPT"
+	fi
 	chown -R root:root "$APP_DIR"
 }
 
@@ -206,6 +285,7 @@ main() {
 	echo "SHA-256:     $RELEASE_SHA256"
 	echo
 
+	configure_key_lockdown
 	create_kiosk_user
 	install_app_files
 	write_service
