@@ -177,7 +177,7 @@ scenes/main.tscn         Main interactive scene
 scripts/main.gd          Input handling, effect spawning, drawing, limits
 scripts/install-kiosk.sh Debian kiosk installer
 scripts/uninstall-kiosk.sh Debian kiosk uninstaller
-docs/mvp.md              Current build target
+docs/mvp.md              Active MVP target, current state, and limits
 docs/kiosk-setup.md      Debian boot-to-kiosk walkthrough
 docs/roadmap.md          Future ideas, not active requirements
 AGENTS.md                Project rules for coding agents

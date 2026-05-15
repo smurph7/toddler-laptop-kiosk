@@ -1,10 +1,12 @@
 # docs/mvp.md
 
-# MVP Goal
+# MVP
 
-Build the first playable version of the toddler toy laptop experience.
+This is the active build-target document for the toddler toy laptop MVP.
 
-The MVP should prove:
+Use this file to tell AI agents what is currently being built. Keep `docs/roadmap.md` for future ideas that are not active requirements.
+
+The MVP should continue to prove:
 
 - fullscreen kiosk-style behaviour
 - responsive visual feedback
@@ -12,11 +14,61 @@ The MVP should prove:
 - satisfying keyboard/mouse interaction
 - toddler-safe interaction design
 
-The MVP does not need polished art, audio, progression systems, or educational content.
+---
+
+# Current State
+
+The first playable baseline is implemented.
+
+Current implemented behaviour:
+
+- launches straight into `res://scenes/main.tscn`
+- requests fullscreen at startup
+- uses a borderless fullscreen project configuration
+- uses Godot 4.2 project settings
+- uses lightweight 2D canvas drawing
+- uses the GL Compatibility renderer for older Linux laptops
+- responds to keyboard presses with colourful glowing bursts
+- makes Space, Enter, and Backspace noticeably larger
+- creates a one-shot held-key bloom after about 1 second
+- creates mouse/touchpad trails
+- creates mouse click bursts
+- continuously emits trail particles while the mouse button is held
+- uses an invisible drifting focus area for keyboard effects
+- hides the cursor after a short idle period
+- shows the cursor again on mouse movement/click
+- caps particles, trails, and rings
+- removes expired effects and trims oldest effects first
+- dynamically lowers effect density when framerate drops
+- provides the adult-only `Ctrl + Alt + Q` quit shortcut
+
+Current known limits:
+
+- No automated Godot test suite is present.
+- Touchscreen support has not been implemented or verified.
+- Kiosk hardening is handled by the Linux setup scripts, not by the Godot scene.
+- The app does not yet include polished art, audio, progression systems, or educational content.
 
 ---
 
-# Engine + Platform
+# Current Goal
+
+The current goal is to keep the implemented baseline stable while adding only features explicitly requested by the user.
+
+When adding a feature:
+
+- update this section with the immediate target before implementation if the request changes MVP scope
+- preserve all baseline behaviours listed above
+- keep the feature toddler-safe, offline, lightweight, and failure-free
+- avoid pulling roadmap ideas into the MVP unless the user explicitly asks for them
+
+Active feature target:
+
+- None. Await the next explicit user-requested MVP feature.
+
+---
+
+# Engine + Platform Requirements
 
 ## Engine
 
@@ -46,9 +98,9 @@ Not required:
 
 ---
 
-# Core Experience
+# Current Experience
 
-The application should launch directly into a fullscreen interactive scene.
+The application should launch directly into one fullscreen interactive scene.
 
 The screen should feel:
 

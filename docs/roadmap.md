@@ -2,9 +2,9 @@
 
 # Roadmap
 
-This document contains future ideas and possible directions for the toddler toy laptop project.
+This document contains future ideas and possible directions for the toddler toy laptop project, plus a short record of completed non-gameplay infrastructure.
 
-These are intentionally out of scope for the current MVP.
+Future ideas in this document are intentionally out of scope for the current MVP.
 
 Roadmap items should not be implemented unless explicitly moved into `docs/mvp.md`.
 
@@ -25,6 +25,28 @@ Future additions should continue to follow the core project principles:
 Complexity should be added carefully.
 
 The application should remain approachable for very young children.
+
+---
+
+# Completed Baseline
+
+The current MVP already includes:
+
+- fullscreen Godot 4.2.x 2D scene
+- keyboard bursts for all keys
+- larger Space, Enter, and Backspace bursts
+- one-shot held-key blooms after about 1 second
+- mouse/touchpad trails and click bursts
+- invisible drifting focus area for keyboard effects
+- cursor hiding after inactivity
+- adult-only `Ctrl + Alt + Q` quit shortcut
+- bounded particles, trails, and rings
+- dynamic effect-density reduction when framerate drops
+- Debian-focused kiosk install and uninstall scripts
+- optional X11-visible special-key lockdown during kiosk startup
+- checksum verification for downloaded release installs
+
+Future work should build from this baseline rather than re-specifying it.
 
 ---
 
@@ -247,28 +269,21 @@ No accounts or cloud systems should be required.
 
 # Linux Appliance Setup
 
-Future deployment improvements:
-
-- boot directly into app - initial Debian script implemented
-- custom splash screen
-- hidden Linux desktop
-- simplified shutdown flow
-- kiosk appliance packaging
-- optional repo-managed setup scripts for the target laptop - initial version implemented
-
-These are deployment enhancements rather than gameplay features.
+The initial Debian appliance setup is implemented. These are deployment features rather than gameplay features.
 
 ## Kiosk Setup Scripts
 
-Initial Debian-focused scripts now live in this repository and can be run manually on the target laptop by an adult installer.
+Debian-focused scripts live in this repository and can be run manually on the target laptop by an adult installer.
 
 Implemented responsibilities:
 
 - create or reuse a dedicated kiosk user
 - install the latest release executable into a stable local app directory
+- verify the downloaded release executable against a required SHA-256 checksum
 - create a systemd service that starts a bare X session on boot
 - launch the app automatically after boot
 - configure X screen blanking and DPMS for the kiosk session
+- optionally disable common X11-visible special keys before launching the app
 - provide a reversible uninstall script
 
 Scripts should:
@@ -285,6 +300,8 @@ Future appliance setup ideas:
 - deeper desktop hiding and package lockdown
 - simplified adult shutdown flow
 - display manager support beyond the current prompt-and-disable path
+- kiosk appliance packaging
+- optional Linux power-button/logind policy guidance
 
 ---
 
