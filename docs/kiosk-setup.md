@@ -66,7 +66,7 @@ By default, the installer:
 - verifies the executable against `RELEASE_SHA256`
 - asks whether to disable common X11-visible special keys for the kiosk session
 - writes `/etc/systemd/system/toddler-laptop-kiosk.service`
-- asks before disabling `display-manager.service`
+- asks before disabling `display-manager.service`, and records the underlying display manager unit when possible
 - enables the kiosk service before making display-manager changes
 
 If the installer asks about disabling `display-manager.service`, choose `y` only when this laptop is intended to boot straight into the kiosk app.
@@ -145,7 +145,20 @@ The uninstaller:
 - removes the systemd unit
 - removes `/opt/toddler-laptop-kiosk`
 - asks before deleting the `toddlerkiosk` user and home directory
-- offers to re-enable `display-manager.service` if the installer disabled it
+- offers to re-enable and start the graphical display manager if the installer disabled it
+
+Different Debian installs expose the display manager under different systemd unit names. The uninstaller first tries the unit recorded during install, then common units such as `gdm.service`, `gdm3.service`, `lightdm.service`, and `sddm.service`.
+
+If you end up at a text console and need the normal graphical login back manually, try the unit your laptop uses:
+
+```sh
+sudo systemctl enable --now gdm.service
+sudo systemctl enable --now gdm3.service
+sudo systemctl enable --now lightdm.service
+sudo systemctl enable --now sddm.service
+```
+
+You only need one of these commands. On some systems `start` works for the current boot, but `enable --now` is better when you also want it to come back after reboot.
 
 Reboot after uninstalling if you want to confirm normal boot behaviour.
 

@@ -225,16 +225,38 @@ display_manager_active_or_enabled() {
 	return 1
 }
 
+detect_display_manager_unit() {
+	local link_target
+	local unit_name
+
+	if command -v readlink >/dev/null 2>&1 && [ -L /etc/systemd/system/display-manager.service ]; then
+		link_target="$(readlink -f /etc/systemd/system/display-manager.service 2>/dev/null || true)"
+		unit_name="$(basename "$link_target")"
+		case "$unit_name" in
+			*.service)
+				echo "$unit_name"
+				return 0
+				;;
+		esac
+	fi
+
+	echo "display-manager.service"
+}
+
 handle_display_manager() {
 	local disabled_display_manager="0"
+	local display_manager_unit
 
 	if display_manager_active_or_enabled; then
+		display_manager_unit="$(detect_display_manager_unit)"
+
 		echo
 		echo "A graphical display manager is active or enabled."
 		echo "For bare kiosk boot, it should be disabled so tty1 can run only the kiosk app."
 		if confirm "Disable display-manager.service now?"; then
 			cat >"$STATE_FILE" <<EOF
 DISPLAY_MANAGER_DISABLED=1
+DISPLAY_MANAGER_UNIT=$display_manager_unit
 EOF
 			enable_kiosk_service
 			systemctl disable --now display-manager.service

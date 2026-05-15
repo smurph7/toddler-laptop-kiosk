@@ -45,20 +45,65 @@ remove_service() {
 	fi
 }
 
+enable_and_start_unit() {
+	local unit_name="$1"
+
+	if systemctl enable --now "$unit_name" >/dev/null 2>&1; then
+		return 0
+	fi
+
+	if systemctl enable "$unit_name" >/dev/null 2>&1 && systemctl start "$unit_name" >/dev/null 2>&1; then
+		return 0
+	fi
+
+	return 1
+}
+
+restore_display_manager_unit() {
+	local preferred_unit="$1"
+	local candidate
+
+	if enable_and_start_unit "$preferred_unit"; then
+		echo "Started display manager: $preferred_unit"
+		return 0
+	fi
+
+	for candidate in display-manager.service gdm.service gdm3.service lightdm.service sddm.service; do
+		if [ "$candidate" = "$preferred_unit" ]; then
+			continue
+		fi
+
+		if enable_and_start_unit "$candidate"; then
+			echo "Started display manager: $candidate"
+			return 0
+		fi
+	done
+
+	return 1
+}
+
 restore_display_manager_if_needed() {
 	local display_manager_disabled="0"
+	local display_manager_unit="display-manager.service"
 
 	if [ -f "$STATE_FILE" ]; then
 		# shellcheck disable=SC1090
 		. "$STATE_FILE"
 		display_manager_disabled="${DISPLAY_MANAGER_DISABLED:-0}"
+		display_manager_unit="${DISPLAY_MANAGER_UNIT:-display-manager.service}"
 	fi
 
 	if [ "$display_manager_disabled" = "1" ] && command -v systemctl >/dev/null 2>&1; then
 		echo
-		if confirm "This installer disabled display-manager.service. Re-enable it?"; then
-			systemctl enable display-manager.service
-			echo "display-manager.service will start on the next boot."
+		if confirm "This installer disabled the display manager. Re-enable and start it now?"; then
+			if ! restore_display_manager_unit "$display_manager_unit"; then
+				echo "Could not restart the display manager automatically."
+				echo "Try one of these, depending on what this laptop uses:"
+				echo "  sudo systemctl enable --now gdm.service"
+				echo "  sudo systemctl enable --now gdm3.service"
+				echo "  sudo systemctl enable --now lightdm.service"
+				echo "  sudo systemctl enable --now sddm.service"
+			fi
 		fi
 	fi
 }
