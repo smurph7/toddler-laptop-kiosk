@@ -20,9 +20,10 @@ wget
 systemctl
 sha256sum
 sudo
+chvt
 ```
 
-If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, `wget`, and `coreutils`.
+If any are missing, install the relevant Debian packages first. Common package names include `xorg`, `xinit`, `x11-xserver-utils`, `wget`, `coreutils`, and `kbd`.
 
 The optional special-key lockdown also uses `xmodmap`, which is usually included in `x11-xserver-utils`.
 
@@ -89,6 +90,7 @@ By default, the installer:
 - writes `/etc/systemd/system/toddler-laptop-kiosk.service`
 - records the Godot app exit status so an intentional app quit is treated as a clean service stop
 - stops `getty@tty1.service` while the kiosk owns `tty1`, then restores it after a clean quit
+- switches back to `tty1` before starting X so manual restarts from another tty can still claim the display
 - clears stale X display `:0` lock files only when no matching X process is still alive
 - asks before disabling `display-manager.service`, and records the underlying display manager unit when possible
 - enables the kiosk service before making display-manager changes

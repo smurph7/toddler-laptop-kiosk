@@ -257,6 +257,10 @@ set -euo pipefail
 
 "$systemctl_path" stop getty@tty1.service >/dev/null 2>&1 || true
 
+if command -v chvt >/dev/null 2>&1; then
+	chvt 1 || true
+fi
+
 if [ -f /tmp/.X0-lock ]; then
 	x_pid="\$(tr -d '[:space:]' </tmp/.X0-lock 2>/dev/null || true)"
 	if [ -z "\$x_pid" ] || ! kill -0 "\$x_pid" >/dev/null 2>&1; then
