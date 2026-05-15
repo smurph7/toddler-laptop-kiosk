@@ -93,9 +93,11 @@ create_kiosk_user() {
 install_app_files() {
 	local temp_file
 	local actual_sha256
+	local systemctl_path
 
 	echo "Installing app into: $APP_DIR"
 	install -d -m 0755 "$APP_DIR"
+	systemctl_path="$(command -v systemctl)"
 
 	if [ -z "$RELEASE_SHA256" ]; then
 		echo "RELEASE_SHA256 must be set to the expected SHA-256 digest for:"
@@ -238,7 +240,7 @@ Restore the tty1 login prompt:
 
 MESSAGE
 
-	systemctl start getty@tty1.service >/dev/null 2>&1 || true
+	"$systemctl_path" --no-block restart getty@tty1.service >/dev/null 2>&1 || true
 	exit 0
 fi
 
@@ -267,7 +269,7 @@ If that does not work, try the display manager this laptop uses:
 
 MESSAGE
 
-systemctl start getty@tty1.service >/dev/null 2>&1 || true
+"$systemctl_path" --no-block restart getty@tty1.service >/dev/null 2>&1 || true
 EOF
 
 	chmod 0755 "$LAUNCH_SCRIPT" "$XSESSION_SCRIPT" "$STARTX_WRAPPER_SCRIPT" "$RECOVERY_HINT_SCRIPT"

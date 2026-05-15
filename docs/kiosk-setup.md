@@ -148,7 +148,7 @@ Ctrl + Alt + Q
 
 This intentionally exits the app and leaves the kiosk service stopped until the next boot or manual restart. The launcher records the Godot app's exit status, so `Ctrl + Alt + Q` is treated as a clean service stop even if `startx` returns a non-zero status while tearing down X.
 
-The service does not prompt to restore the desktop login, because it is not an interactive admin session. Instead, it prints recovery commands on `tty1` after a clean quit.
+The service does not prompt to restore the desktop login, because it is not an interactive admin session. Instead, it prints recovery commands on `tty1` after a clean quit and asks systemd to restore the `tty1` login prompt without blocking service shutdown.
 
 Do not run the restart command from `tty1` itself. The kiosk service owns `tty1`, so starting it there can reset the login session you are typing in.
 
@@ -223,7 +223,7 @@ The uninstaller:
 - removes the systemd unit
 - removes `/opt/toddler-laptop-kiosk`
 - asks before deleting the `toddlerkiosk` user and home directory
-- offers to re-enable and start the graphical display manager if the installer disabled it
+- offers to re-enable and start the graphical display manager if the installer disabled it, or if no active/enabled display manager is detected during uninstall
 
 Different Debian installs expose the display manager under different systemd unit names. The uninstaller first tries the unit recorded during install, then common units such as `gdm.service`, `gdm3.service`, `lightdm.service`, and `sddm.service`.
 

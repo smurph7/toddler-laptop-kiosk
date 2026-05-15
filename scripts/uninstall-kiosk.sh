@@ -82,9 +82,17 @@ restore_display_manager_unit() {
 	return 1
 }
 
+display_manager_active_or_enabled() {
+	systemctl is-active --quiet display-manager.service && return 0
+	systemctl is-enabled --quiet display-manager.service >/dev/null 2>&1 && return 0
+	return 1
+}
+
 restore_display_manager_if_needed() {
 	local display_manager_disabled="0"
 	local display_manager_unit="display-manager.service"
+	local should_offer_restore="0"
+	local restore_prompt="No active or enabled display manager was detected. Re-enable and start one now?"
 
 	if [ -f "$STATE_FILE" ]; then
 		# shellcheck disable=SC1090
@@ -93,9 +101,20 @@ restore_display_manager_if_needed() {
 		display_manager_unit="${DISPLAY_MANAGER_UNIT:-display-manager.service}"
 	fi
 
-	if [ "$display_manager_disabled" = "1" ] && command -v systemctl >/dev/null 2>&1; then
+	if ! command -v systemctl >/dev/null 2>&1; then
+		return
+	fi
+
+	if [ "$display_manager_disabled" = "1" ]; then
+		should_offer_restore="1"
+		restore_prompt="This installer disabled the display manager. Re-enable and start it now?"
+	elif ! display_manager_active_or_enabled; then
+		should_offer_restore="1"
+	fi
+
+	if [ "$should_offer_restore" = "1" ]; then
 		echo
-		if confirm "This installer disabled the display manager. Re-enable and start it now?"; then
+		if confirm "$restore_prompt"; then
 			if ! restore_display_manager_unit "$display_manager_unit"; then
 				echo "Could not restart the display manager automatically."
 				echo "Try one of these, depending on what this laptop uses:"
